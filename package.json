@@ -1,0 +1,8 @@
+{
+  "name": "brasilguard-v2",
+  "version": "1.0.0",
+  "dependencies": {
+    "@supabase/supabase-js": "^2.39.7",
+    "jsonwebtoken": "^9.0.2"
+  }
+}
