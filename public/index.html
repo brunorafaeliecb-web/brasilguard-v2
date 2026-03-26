@@ -16,7 +16,7 @@
         async function gerar() {
             const btn = event.target;
             btn.innerText = "Gerando...";
-            const res = await fetch('/api/verify', {
+            const res = await fetch('/api/verify.js', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ caller: "552199999999", destination: "552188888888" })
