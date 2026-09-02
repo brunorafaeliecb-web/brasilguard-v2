@@ -11,7 +11,7 @@ function json(body: unknown, status = 200) {
 }
 
 async function audit(db: any, params: Record<string, unknown>) {
-  const { error } = await db.rpc("bgd_append_audit_event", params);
+  const { error } = await db.rpc("wa_bgd_append_audit_event", params);
   if (error) throw new Error(`audit_append_failed:${error.code ?? "unknown"}`);
 }
 
@@ -33,7 +33,7 @@ Deno.serve(async (req: Request) => {
   for (const item of extractInboundMessages(payload)) {
     const traceId = crypto.randomUUID();
     const { data: connection, error: connectionError } = await db
-      .from("whatsapp_connections")
+      .from("wa_whatsapp_connections")
       .select("id,tenant_id,phone_number_id,display_phone,active")
       .eq("phone_number_id", item.phoneNumberId)
       .eq("active", true)
@@ -41,7 +41,7 @@ Deno.serve(async (req: Request) => {
     if (connectionError) return json({ error: "connection_lookup_failed" }, 500);
     if (!connection) { ignored += 1; continue; }
 
-    const { error: eventError } = await db.from("whatsapp_inbound_events").insert({
+    const { error: eventError } = await db.from("wa_whatsapp_inbound_events").insert({
       tenant_id: connection.tenant_id,
       phone_number_id: connection.phone_number_id,
       provider_event_id: item.message.providerMessageId,
@@ -53,7 +53,7 @@ Deno.serve(async (req: Request) => {
     if (eventError) return json({ error: "inbound_event_persist_failed" }, 500);
 
     const { data: identity, error: identityError } = await db
-      .from("contact_identities")
+      .from("wa_contact_identities")
       .upsert({ tenant_id: connection.tenant_id, phone_e164: item.message.sender, role: "other", status: "active" }, { onConflict: "tenant_id,phone_e164" })
       .select("id,phone_e164,role")
       .single();
@@ -61,7 +61,7 @@ Deno.serve(async (req: Request) => {
 
     let conversation: any = null;
     const { data: existingConversation, error: conversationLookupError } = await db
-      .from("conversations")
+      .from("wa_conversations")
       .select("id,status,identity_role")
       .eq("tenant_id", connection.tenant_id)
       .eq("contact_key", item.message.sender)
@@ -75,7 +75,7 @@ Deno.serve(async (req: Request) => {
     if (existingConversation) conversation = existingConversation;
     else {
       const { data: createdConversation, error: createConversationError } = await db
-        .from("conversations")
+        .from("wa_conversations")
         .insert({ tenant_id: connection.tenant_id, contact_key: item.message.sender, channel: "whatsapp", status: "open", identity_id: identity.id, identity_role: identity.role })
         .select("id,status,identity_role").single();
       if (createConversationError || !createdConversation) return json({ error: "conversation_create_failed" }, 500);
@@ -88,7 +88,7 @@ Deno.serve(async (req: Request) => {
     }
 
     const { data: stored, error: messageError } = await db
-      .from("conversation_messages")
+      .from("wa_conversation_messages")
       .insert({
         tenant_id: connection.tenant_id, conversation_id: conversation.id, channel: "whatsapp", direction: "inbound",
         provider_message_id: item.message.providerMessageId, sender: item.message.sender, recipient: item.message.recipient,
@@ -98,7 +98,7 @@ Deno.serve(async (req: Request) => {
     if (messageError || !stored) return json({ error: "message_persist_failed" }, 500);
 
     const { data: job, error: jobError } = await db
-      .from("automation_jobs")
+      .from("wa_automation_jobs")
       .upsert({
         tenant_id: connection.tenant_id, conversation_id: conversation.id, job_type: "auto_reply",
         trigger_message_id: stored.id, trace_id: traceId, status: "pending",
