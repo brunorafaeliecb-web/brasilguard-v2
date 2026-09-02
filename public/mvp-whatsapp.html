@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>BrasilGuard — MVP WhatsApp</title>
+  <style>
+    body{font-family:Inter,system-ui,-apple-system,sans-serif;background:#0f172a;color:#e2e8f0;margin:0;padding:32px}
+    .wrap{max-width:920px;margin:0 auto}.card{background:#111827;border:1px solid #334155;border-radius:18px;padding:24px;margin:16px 0}
+    h1,h2{margin-top:0}.ok{color:#4ade80}.wait{color:#facc15}.block{color:#fb7185}.mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+    table{width:100%;border-collapse:collapse}td,th{padding:10px;border-bottom:1px solid #334155;text-align:left}small{color:#94a3b8}
+  </style>
+</head>
+<body>
+  <main class="wrap">
+    <div class="card">
+      <h1>BrasilGuard / Mordomo — MVP WhatsApp</h1>
+      <p><strong>Arquitetura:</strong> GitHub + Vercel + Cloudflare Workers + Supabase + WhatsApp Cloud API + Gemini.</p>
+      <p><strong>Production Gate:</strong> <span class="block">BLOCK</span> até secrets, Cloudflare, Meta webhook e E2E real passarem.</p>
+      <small>Esta rota é separada do sistema STIR/SHAKEN existente e não o substitui.</small>
+    </div>
+
+    <div class="card">
+      <h2>Estado operacional</h2>
+      <table>
+        <tr><th>Componente</th><th>Status</th></tr>
+        <tr><td>Supabase namespace <span class="mono">wa_*</span></td><td class="ok">PASS</td></tr>
+        <tr><td>RLS / hardening</td><td class="ok">PASS</td></tr>
+        <tr><td><span class="mono">wa-ingest</span></td><td class="ok">ACTIVE v1</td></tr>
+        <tr><td><span class="mono">wa-process</span></td><td class="ok">ACTIVE v1</td></tr>
+        <tr><td>Auditoria append-only SHA-256</td><td class="ok">PASS</td></tr>
+        <tr><td>GitHub → Vercel Preview</td><td class="ok">READY</td></tr>
+        <tr><td>Provider secrets</td><td class="wait">PENDENTE</td></tr>
+        <tr><td>Cloudflare Worker</td><td class="wait">PENDENTE</td></tr>
+        <tr><td>Meta webhook + E2E</td><td class="wait">PENDENTE</td></tr>
+      </table>
+    </div>
+
+    <div class="card">
+      <h2>Regra BGD de credenciais</h2>
+      <p>Todo campo que exige senha, token, API key ou secret é marcado como <span class="mono">mudeaquiasenha</span> nos templates.</p>
+      <p>O workflow de bootstrap dos provedores é manual e falha fechado se detectar placeholder ou valor ausente.</p>
+    </div>
+  </main>
+</body>
+</html>
