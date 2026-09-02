@@ -1,0 +1,9 @@
+name = "bgd-mvp-whatsapp-webhook"
+main = "src/index.ts"
+compatibility_date = "2026-09-01"
+
+# Configure as secrets in Cloudflare, never commit real values:
+# wrangler secret put WHATSAPP_VERIFY_TOKEN
+# wrangler secret put WHATSAPP_APP_SECRET
+# wrangler secret put SUPABASE_INGEST_URL
+# wrangler secret put BGD_INGRESS_SECRET
