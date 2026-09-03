@@ -1,0 +1,30 @@
+{
+  "manifest_version": 2,
+  "name": "BrasilGuard Agenda",
+  "version": "0.0.1",
+  "description": "Agendamentos, clientes e lembretes multicanal da BrasilGuard.",
+  "permissions": [
+    "storage",
+    "notifications",
+    "alarms",
+    "https://*/"
+  ],
+  "browser_action": {
+    "default_title": "BrasilGuard Agenda",
+    "default_popup": "popup.html"
+  },
+  "background": {
+    "scripts": ["config.js", "background.js"],
+    "persistent": false
+  },
+  "options_ui": {
+    "page": "options.html",
+    "open_in_tab": true
+  },
+  "applications": {
+    "gecko": {
+      "id": "agenda@brasilguard.local",
+      "strict_min_version": "109.0"
+    }
+  }
+}
