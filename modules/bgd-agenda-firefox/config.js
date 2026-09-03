@@ -1,10 +1,11 @@
 // BrasilGuard Agenda — configurações de integração.
-// IMPORTANTE: substituir todo valor MUDARASENHA apenas na etapa de configuração/teste.
+// Valores públicos podem permanecer no plugin. Segredos/tokens sensíveis NÃO devem ser embutidos.
+// MUDARASENHA = gate que será preenchido/configurado na etapa de autenticação/testes.
 const BGD_CONFIG = {
-  SUPABASE_URL: "MUDARASENHA",
-  SUPABASE_ANON_KEY: "MUDARASENHA",
-  BACKEND_URL: "MUDARASENHA",
+  SUPABASE_URL: "https://zwtmcqtepkzxuhilxyjx.supabase.co",
+  SUPABASE_PUBLISHABLE_KEY: "sb_publishable_O-JhQJkS7jmHwPn7qYExZg_pjIyIZ-N",
+  SUPABASE_ACCESS_TOKEN: "MUDARASENHA",
+  BACKEND_URL: "https://zwtmcqtepkzxuhilxyjx.supabase.co/functions/v1/bgd-agenda-appointments",
   GOOGLE_CLIENT_ID: "MUDARASENHA",
-  WHATSAPP_PHONE_NUMBER_ID: "MUDARASENHA",
-  WHATSAPP_ACCESS_TOKEN: "MUDARASENHA"
+  WHATSAPP_PHONE_NUMBER_ID: "MUDARASENHA"
 };
