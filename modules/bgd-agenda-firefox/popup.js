@@ -2,6 +2,21 @@ const form = document.getElementById('appointment-form');
 const statusEl = document.getElementById('status');
 const listEl = document.getElementById('appointments');
 
+const fields = {
+  clientName: document.getElementById('clientName'),
+  clientPhone: document.getElementById('clientPhone'),
+  clientEmail: document.getElementById('clientEmail'),
+  serviceName: document.getElementById('serviceName'),
+  startsAt: document.getElementById('startsAt'),
+  durationMinutes: document.getElementById('durationMinutes'),
+  allowReschedule: document.getElementById('allowReschedule'),
+  rescheduleLimitHours: document.getElementById('rescheduleLimitHours'),
+  reminderEmail: document.getElementById('reminderEmail'),
+  reminderWhatsapp: document.getElementById('reminderWhatsapp'),
+  reminderBrowser: document.getElementById('reminderBrowser'),
+  reminderMinutes: document.getElementById('reminderMinutes')
+};
+
 async function getAppointments(){
   const data = await browser.storage.local.get('appointments');
   return Array.isArray(data.appointments) ? data.appointments : [];
@@ -19,26 +34,67 @@ async function render(){
 }
 
 function escapeHtml(value=''){
-  return value.replace(/[&<>'"]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));
+  return String(value).replace(/[&<>'\"]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','\"':'&quot;'}[c]));
 }
+
+function captureDraft(){
+  return {
+    clientName: fields.clientName.value,
+    clientPhone: fields.clientPhone.value,
+    clientEmail: fields.clientEmail.value,
+    serviceName: fields.serviceName.value,
+    startsAt: fields.startsAt.value,
+    durationMinutes: fields.durationMinutes.value,
+    allowReschedule: fields.allowReschedule.checked,
+    rescheduleLimitHours: fields.rescheduleLimitHours.value,
+    reminderEmail: fields.reminderEmail.checked,
+    reminderWhatsapp: fields.reminderWhatsapp.checked,
+    reminderBrowser: fields.reminderBrowser.checked,
+    reminderMinutes: fields.reminderMinutes.value,
+    savedAt: new Date().toISOString()
+  };
+}
+
+let draftTimer = null;
+function scheduleDraftSave(){
+  clearTimeout(draftTimer);
+  draftTimer = setTimeout(async ()=>{
+    await browser.storage.local.set({agendaDraft:captureDraft()});
+    statusEl.textContent='Rascunho salvo automaticamente.';
+  },250);
+}
+
+async function restoreDraft(){
+  const {agendaDraft=null} = await browser.storage.local.get('agendaDraft');
+  if(!agendaDraft) return;
+  for(const [key,element] of Object.entries(fields)){
+    if(!(key in agendaDraft)) continue;
+    if(element.type==='checkbox') element.checked=Boolean(agendaDraft[key]);
+    else element.value=agendaDraft[key] ?? '';
+  }
+  statusEl.textContent='Rascunho restaurado.';
+}
+
+form.addEventListener('input', scheduleDraftSave);
+form.addEventListener('change', scheduleDraftSave);
 
 form.addEventListener('submit', async (event)=>{
   event.preventDefault();
   const appointment = {
     id: crypto.randomUUID(),
-    clientName: clientName.value.trim(),
-    clientPhone: clientPhone.value.trim(),
-    clientEmail: clientEmail.value.trim(),
-    serviceName: serviceName.value.trim(),
-    startsAt: new Date(startsAt.value).toISOString(),
-    durationMinutes: Number(durationMinutes.value),
-    allowReschedule: allowReschedule.checked,
-    rescheduleLimitHours: Number(rescheduleLimitHours.value),
+    clientName: fields.clientName.value.trim(),
+    clientPhone: fields.clientPhone.value.trim(),
+    clientEmail: fields.clientEmail.value.trim(),
+    serviceName: fields.serviceName.value.trim(),
+    startsAt: new Date(fields.startsAt.value).toISOString(),
+    durationMinutes: Number(fields.durationMinutes.value),
+    allowReschedule: fields.allowReschedule.checked,
+    rescheduleLimitHours: Number(fields.rescheduleLimitHours.value),
     reminders: {
-      email: reminderEmail.checked,
-      whatsapp: reminderWhatsapp.checked,
-      browser: reminderBrowser.checked,
-      minutesBefore: Number(reminderMinutes.value)
+      email: fields.reminderEmail.checked,
+      whatsapp: fields.reminderWhatsapp.checked,
+      browser: fields.reminderBrowser.checked,
+      minutesBefore: Number(fields.reminderMinutes.value)
     },
     status: 'scheduled',
     createdAt: new Date().toISOString()
@@ -47,11 +103,17 @@ form.addEventListener('submit', async (event)=>{
   items.push(appointment);
   await browser.storage.local.set({appointments:items});
   await browser.runtime.sendMessage({type:'BGD_APPOINTMENT_CREATED', appointment});
+  await browser.storage.local.remove('agendaDraft');
   statusEl.textContent='Agendamento salvo.';
   form.reset();
-  allowReschedule.checked = reminderEmail.checked = reminderWhatsapp.checked = reminderBrowser.checked = true;
-  durationMinutes.value=60; rescheduleLimitHours.value=6; reminderMinutes.value=60;
+  fields.allowReschedule.checked = fields.reminderEmail.checked = fields.reminderWhatsapp.checked = fields.reminderBrowser.checked = true;
+  fields.durationMinutes.value=60;
+  fields.rescheduleLimitHours.value=6;
+  fields.reminderMinutes.value=60;
   await render();
 });
 
-render();
+(async()=>{
+  await restoreDraft();
+  await render();
+})();
