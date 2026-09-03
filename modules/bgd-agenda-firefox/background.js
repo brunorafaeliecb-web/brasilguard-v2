@@ -41,11 +41,21 @@ async function enqueueIntegrations(appointment){
   });
   await browser.storage.local.set({integrationQueue});
 
-  // Não bloqueia o MVP quando ainda não há backend configurado.
-  if(!BGD_CONFIG.BACKEND_URL || BGD_CONFIG.BACKEND_URL==='MUDARASENHA') return;
+  // MUDARASENHA: autenticação do operador será ligada no ciclo de teste.
+  // Enquanto não existir sessão autenticada, preservamos tudo localmente sem travar o fluxo.
+  if(!BGD_CONFIG.BACKEND_URL || BGD_CONFIG.SUPABASE_ACCESS_TOKEN==='MUDARASENHA') return;
+
   try{
-    await fetch(`${BGD_CONFIG.BACKEND_URL}/api/appointments`, {
-      method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(appointment)
+    const response = await fetch(BGD_CONFIG.BACKEND_URL, {
+      method:'POST',
+      headers:{
+        'Content-Type':'application/json',
+        'Authorization':'Bearer ' + BGD_CONFIG.SUPABASE_ACCESS_TOKEN
+      },
+      body:JSON.stringify(appointment)
     });
-  }catch(error){ console.warn('BGD Agenda: backend indisponível; item preservado na fila local.', error); }
+    if(!response.ok) throw new Error('backend_http_' + response.status);
+  }catch(error){
+    console.warn('BGD Agenda: backend indisponível; item preservado na fila local.', error);
+  }
 }
