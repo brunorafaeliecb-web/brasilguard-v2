@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>BrasilGuard Agenda</title>
+  <link rel="stylesheet" href="popup.css" />
+</head>
+<body>
+  <main>
+    <h1>BrasilGuard Agenda</h1>
+    <form id="appointment-form">
+      <label>Cliente<input id="clientName" required maxlength="120" /></label>
+      <label>WhatsApp<input id="clientPhone" required placeholder="5521999999999" /></label>
+      <label>E-mail<input id="clientEmail" type="email" /></label>
+      <label>Serviço<input id="serviceName" required maxlength="120" /></label>
+      <label>Data e hora<input id="startsAt" type="datetime-local" required /></label>
+      <label>Duração (min)<input id="durationMinutes" type="number" min="5" value="60" required /></label>
+      <label><input id="allowReschedule" type="checkbox" checked /> Permitir reagendamento</label>
+      <label>Até quantas horas antes?<input id="rescheduleLimitHours" type="number" min="0" value="6" /></label>
+      <fieldset>
+        <legend>Lembretes</legend>
+        <label><input id="reminderEmail" type="checkbox" checked /> E-mail</label>
+        <label><input id="reminderWhatsapp" type="checkbox" checked /> WhatsApp</label>
+        <label><input id="reminderBrowser" type="checkbox" checked /> Firefox</label>
+        <label>Minutos antes<input id="reminderMinutes" type="number" min="1" value="60" /></label>
+      </fieldset>
+      <button type="submit">Salvar agendamento</button>
+    </form>
+    <p id="status" role="status"></p>
+    <section>
+      <h2>Próximos</h2>
+      <div id="appointments"></div>
+    </section>
+  </main>
+  <script src="popup.js"></script>
+</body>
+</html>
