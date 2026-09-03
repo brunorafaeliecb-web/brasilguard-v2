@@ -41,16 +41,16 @@ async function enqueueIntegrations(appointment){
   });
   await browser.storage.local.set({integrationQueue});
 
-  // MUDARASENHA: autenticação do operador será ligada no ciclo de teste.
-  // Enquanto não existir sessão autenticada, preservamos tudo localmente sem travar o fluxo.
-  if(!BGD_CONFIG.BACKEND_URL || BGD_CONFIG.SUPABASE_ACCESS_TOKEN==='MUDARASENHA') return;
+  const {bgdSession=null} = await browser.storage.local.get('bgdSession');
+  if(!BGD_CONFIG.BACKEND_URL || !bgdSession?.access_token) return;
 
   try{
     const response = await fetch(BGD_CONFIG.BACKEND_URL, {
       method:'POST',
       headers:{
         'Content-Type':'application/json',
-        'Authorization':'Bearer ' + BGD_CONFIG.SUPABASE_ACCESS_TOKEN
+        'apikey':BGD_CONFIG.SUPABASE_PUBLISHABLE_KEY,
+        'Authorization':'Bearer ' + bgdSession.access_token
       },
       body:JSON.stringify(appointment)
     });
