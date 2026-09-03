@@ -1,7 +1,7 @@
 {
   "manifest_version": 2,
   "name": "BrasilGuard Agenda",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "Agendamentos, clientes e lembretes multicanal da BrasilGuard.",
   "permissions": [
     "storage",
@@ -10,8 +10,7 @@
     "https://*/"
   ],
   "browser_action": {
-    "default_title": "BrasilGuard Agenda",
-    "default_popup": "popup.html"
+    "default_title": "Abrir BrasilGuard Agenda"
   },
   "background": {
     "scripts": ["config.js", "background.js"],
