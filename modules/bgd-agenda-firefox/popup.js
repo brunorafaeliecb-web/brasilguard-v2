@@ -17,6 +17,15 @@ const fields = {
   reminderMinutes: document.getElementById('reminderMinutes')
 };
 
+const requiredFields = [
+  ['clientName','Cliente'],
+  ['clientPhone','WhatsApp'],
+  ['serviceName','Serviço'],
+  ['startsAt','Data e hora'],
+  ['durationMinutes','Duração'],
+  ['reminderMinutes','Minutos antes']
+];
+
 async function getAppointments(){
   const data = await browser.storage.local.get('appointments');
   return Array.isArray(data.appointments) ? data.appointments : [];
@@ -75,21 +84,63 @@ async function restoreDraft(){
   statusEl.textContent='Rascunho restaurado.';
 }
 
+function validateRequired(){
+  const missing=[];
+  for(const [key,label] of requiredFields){
+    const element=fields[key];
+    const raw=String(element.value ?? '').trim();
+    const invalidNumber = element.type==='number' && (!Number.isFinite(Number(raw)) || Number(raw) < Number(element.min || 0));
+    if(!raw || invalidNumber){
+      missing.push(label);
+      element.classList.add('field-error');
+    }else{
+      element.classList.remove('field-error');
+    }
+  }
+
+  if(fields.clientEmail.value && !fields.clientEmail.checkValidity()){
+    fields.clientEmail.classList.add('field-error');
+    missing.push('E-mail válido');
+  }else{
+    fields.clientEmail.classList.remove('field-error');
+  }
+
+  if(missing.length){
+    statusEl.textContent='Não foi salvo. Preencha: ' + missing.join(', ') + '.';
+    const first = requiredFields.find(([key])=>fields[key].classList.contains('field-error'));
+    if(first) fields[first[0]].focus();
+    return false;
+  }
+  return true;
+}
+
 form.addEventListener('input', scheduleDraftSave);
 form.addEventListener('change', scheduleDraftSave);
 
 form.addEventListener('submit', async (event)=>{
   event.preventDefault();
+  await browser.storage.local.set({agendaDraft:captureDraft()});
+
+  if(!validateRequired()) return;
+
+  const startDate = new Date(fields.startsAt.value);
+  if(Number.isNaN(startDate.getTime())){
+    fields.startsAt.classList.add('field-error');
+    statusEl.textContent='Não foi salvo. Informe uma data e hora válidas.';
+    fields.startsAt.focus();
+    return;
+  }
+
   const appointment = {
     id: crypto.randomUUID(),
     clientName: fields.clientName.value.trim(),
     clientPhone: fields.clientPhone.value.trim(),
     clientEmail: fields.clientEmail.value.trim(),
     serviceName: fields.serviceName.value.trim(),
-    startsAt: new Date(fields.startsAt.value).toISOString(),
+    startsAt: startDate.toISOString(),
     durationMinutes: Number(fields.durationMinutes.value),
     allowReschedule: fields.allowReschedule.checked,
-    rescheduleLimitHours: Number(fields.rescheduleLimitHours.value),
+    rescheduleLimitHours: Number(fields.rescheduleLimitHours.value || 0),
     reminders: {
       email: fields.reminderEmail.checked,
       whatsapp: fields.reminderWhatsapp.checked,
@@ -99,6 +150,7 @@ form.addEventListener('submit', async (event)=>{
     status: 'scheduled',
     createdAt: new Date().toISOString()
   };
+
   const items = await getAppointments();
   items.push(appointment);
   await browser.storage.local.set({appointments:items});
