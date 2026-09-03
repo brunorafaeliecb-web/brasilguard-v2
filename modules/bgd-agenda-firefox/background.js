@@ -1,6 +1,10 @@
 // BrasilGuard Agenda — orquestração local.
 // O backend será a fonte de verdade em produção. A extensão mantém fallback local para MVP/testes.
 
+browser.browserAction.onClicked.addListener(async ()=>{
+  await browser.tabs.create({url: browser.runtime.getURL('popup.html')});
+});
+
 browser.runtime.onMessage.addListener(async (message)=>{
   if(message?.type !== 'BGD_APPOINTMENT_CREATED') return;
   const a = message.appointment;
