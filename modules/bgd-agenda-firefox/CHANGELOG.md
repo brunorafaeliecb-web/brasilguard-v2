@@ -2,6 +2,65 @@
 
 Todas as alterações relevantes deste módulo devem ser registradas aqui em ordem cronológica, sem apagar histórico anterior.
 
+## v0003.d — 2026-09-04
+
+**Versão interna:** `0.2.4`
+
+### Offline-first governado
+- cache local do conteúdo previamente autorizado;
+- fila local para criação, atualização/reagendamento e cancelamento de agendamentos;
+- operações offline são marcadas como provisórias até confirmação do backend;
+- disponibilidade offline é estimada pelo cache e nunca tratada como confirmação definitiva;
+- reconciliação automática ao recuperar conectividade;
+- conflito remoto (`slot_unavailable`) é preservado e notificado, nunca sobrescrito silenciosamente;
+- fingerprint SHA-256 por item de fila;
+- evidências locais `offline.queued`, `offline.synced` e `offline.conflict`;
+- recuperação de criação idempotente pelo `appointmentId` quando a resposta de rede é perdida;
+- cache da última leitura do Google Calendar;
+- fila independente para criação/edição/cancelamento no Google quando a rede estiver indisponível;
+- eventos Google criados pelo BrasilGuard recebem `extendedProperties.private.bgdAppointmentId`;
+- licença comercial previamente validada pode operar offline por janela controlada de 72 horas;
+- primeiro login, primeiro cadastro, compra e pagamento continuam exigindo internet.
+
+### Build
+- pacote oficial: `BrasilGuard-Agenda-Firefox-v0003.d.xpi`;
+- `offline-sync.js` incluído no runtime/distribuição.
+
+### Status
+`IMPLEMENTADO — TESTE INTEGRADO OFFLINE/RECONEXÃO PENDENTE`
+
+## v0003.c — 2026-09-04
+
+**Versão interna:** `0.2.3`
+
+### Comércio/licenciamento
+- base comercial de planos, pedidos, pagamentos, assinaturas, entitlements, eventos de licença e outbox de e-mail;
+- Edge Function `bgd-agenda-commerce-v1`;
+- fluxo preparado para InfinitePay com pedido pendente, webhook e confirmação server-side antes da ativação;
+- gate comercial na extensão (`commerce-guard.js`);
+- `COMMERCE_ENFORCED=false` enquanto preço/plano/remetente não estiverem fechados;
+- entrega comercial definida por e-mail, sem chave manual de licença;
+- domínio comercial predominante definido como `brazilguard.com.br`.
+
+### Status
+`FUNDAÇÃO COMERCIAL IMPLEMENTADA — PARÂMETROS DE VENDA E E-MAIL AINDA PENDENTES`
+
+## v0003.b — 2026-09-04
+
+**Versão interna:** `0.2.2`
+
+### Agenda premium integrada
+- agenda gráfica com vistas Dia, Semana e Mês;
+- leitura dos eventos reais do Google Calendar da conta autenticada;
+- exibição conjunta de eventos BrasilGuard e Google;
+- filtros por profissional e origem;
+- opção de ocultar títulos pessoais do Google e exibir apenas ocupação;
+- acesso direto ao Google Calendar;
+- deduplicação visual entre agendamento BrasilGuard e respectivo evento Google.
+
+### Status
+`IMPLEMENTADO — TESTE INTEGRADO PENDENTE`
+
 ## v0003.a — 2026-09-04
 
 **Versão interna:** `0.2.0`
