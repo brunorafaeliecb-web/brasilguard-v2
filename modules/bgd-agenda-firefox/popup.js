@@ -1,6 +1,8 @@
 const form = document.getElementById('appointment-form');
 const statusEl = document.getElementById('status');
 const listEl = document.getElementById('appointments');
+const googleStatusEl = document.getElementById('googleStatus');
+const connectGoogleBtn = document.getElementById('connectGoogle');
 
 const fields = {
   clientName: document.getElementById('clientName'),
@@ -45,6 +47,37 @@ async function render(){
 function escapeHtml(value=''){
   return String(value).replace(/[&<>'\"]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','\"':'&quot;'}[c]));
 }
+
+async function refreshGoogleStatus(){
+  try{
+    const result = await browser.runtime.sendMessage({type:'BGD_GOOGLE_STATUS'});
+    const connected = Boolean(result?.connected);
+    googleStatusEl.textContent = connected ? 'Conectado. Novos agendamentos serão enviados ao Google Agenda.' : 'Ainda não conectado.';
+    connectGoogleBtn.textContent = connected ? 'Reconectar Google Agenda' : 'Conectar Google Agenda';
+    googleStatusEl.classList.toggle('ok', connected);
+  }catch(error){
+    googleStatusEl.textContent='Não foi possível verificar a conexão com o Google.';
+  }
+}
+
+connectGoogleBtn.addEventListener('click', async ()=>{
+  connectGoogleBtn.disabled=true;
+  googleStatusEl.textContent='Abrindo autorização do Google...';
+  try{
+    const result = await browser.runtime.sendMessage({type:'BGD_GOOGLE_CONNECT'});
+    if(result?.ok){
+      googleStatusEl.textContent='Google Agenda conectado com sucesso.';
+      googleStatusEl.classList.add('ok');
+      connectGoogleBtn.textContent='Reconectar Google Agenda';
+    }else{
+      googleStatusEl.textContent='Falha ao conectar Google Agenda: ' + (result?.error || 'erro desconhecido');
+    }
+  }catch(error){
+    googleStatusEl.textContent='Falha ao conectar Google Agenda: ' + String(error?.message || error);
+  }finally{
+    connectGoogleBtn.disabled=false;
+  }
+});
 
 function captureDraft(){
   return {
@@ -154,9 +187,9 @@ form.addEventListener('submit', async (event)=>{
   const items = await getAppointments();
   items.push(appointment);
   await browser.storage.local.set({appointments:items});
-  await browser.runtime.sendMessage({type:'BGD_APPOINTMENT_CREATED', appointment});
+  const integrationResult = await browser.runtime.sendMessage({type:'BGD_APPOINTMENT_CREATED', appointment});
   await browser.storage.local.remove('agendaDraft');
-  statusEl.textContent='Agendamento salvo.';
+  statusEl.textContent = integrationResult?.ok ? 'Agendamento salvo.' : 'Agendamento salvo localmente.';
   form.reset();
   fields.allowReschedule.checked = fields.reminderEmail.checked = fields.reminderWhatsapp.checked = fields.reminderBrowser.checked = true;
   fields.durationMinutes.value=60;
@@ -167,5 +200,6 @@ form.addEventListener('submit', async (event)=>{
 
 (async()=>{
   await restoreDraft();
+  await refreshGoogleStatus();
   await render();
 })();
