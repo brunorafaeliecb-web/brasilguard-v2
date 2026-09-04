@@ -1,8 +1,8 @@
 {
   "manifest_version": 2,
   "name": "BrasilGuard Agenda",
-  "version": "0.2.5",
-  "description": "BrasilGuard Agenda v0003.e: agenda integrada ao Google Calendar com licenciamento comercial, operação offline-first governada e persistência de cadastro offline.",
+  "version": "0.2.6",
+  "description": "BrasilGuard Agenda v0003.f: agenda integrada ao Google Calendar com licenciamento comercial, operação offline-first governada e conformidade para publicação no Firefox.",
   "permissions": [
     "storage",
     "notifications",
@@ -24,10 +24,13 @@
     "page": "options.html",
     "open_in_tab": true
   },
-  "applications": {
+  "browser_specific_settings": {
     "gecko": {
       "id": "agenda@brasilguard.local",
-      "strict_min_version": "109.0"
+      "strict_min_version": "140.0",
+      "data_collection_permissions": {
+        "required": ["personallyIdentifyingInfo"]
+      }
     }
   }
 }
