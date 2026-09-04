@@ -2,13 +2,16 @@
   "manifest_version": 2,
   "name": "BrasilGuard Agenda",
   "version": "0.2.0",
-  "description": "BrasilGuard Agenda v0003.a: plataforma multi-tenant com agenda visual, RBAC, white-label, integrações, webhooks, pagamentos e base offline-first.",
+  "description": "BrasilGuard Agenda v0003.a: agenda premium multi-tenant com disponibilidade, profissionais, serviços, RBAC e integrações.",
   "permissions": [
     "storage",
     "notifications",
     "alarms",
     "identity",
-    "https://*/"
+    "https://zwtmcqtepkzxuhilxyjx.supabase.co/*",
+    "https://oauth2.googleapis.com/*",
+    "https://www.googleapis.com/*",
+    "https://accounts.google.com/*"
   ],
   "browser_action": {
     "default_title": "Abrir BrasilGuard Agenda"
