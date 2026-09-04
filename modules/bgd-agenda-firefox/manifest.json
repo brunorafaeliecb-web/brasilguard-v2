@@ -1,8 +1,8 @@
 {
   "manifest_version": 2,
   "name": "BrasilGuard Agenda",
-  "version": "0.1.0",
-  "description": "Agenda BrasilGuard com login Google obrigatório, disponibilidade por duração, RBAC, branding e mensagens transacionais.",
+  "version": "0.1.1",
+  "description": "Agenda BrasilGuard com login Google, agenda visual LIVRE/OCUPADO, RBAC, clientes, profissionais, serviços, branding e mensagens transacionais.",
   "permissions": [
     "storage",
     "notifications",
