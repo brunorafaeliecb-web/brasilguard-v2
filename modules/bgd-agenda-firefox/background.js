@@ -1,5 +1,5 @@
-// BrasilGuard Agenda — OAuth Google, Google Calendar e lembretes locais.
-// Fonte de verdade operacional: backend Supabase. A extensão mantém cache/local reminders.
+// BrasilGuard Agenda — OAuth Google, Google Calendar, offline sync e lembretes locais.
+// Fonte de verdade operacional: backend Supabase. A extensão mantém cache/local reminders e filas transitórias.
 
 const HEARTBEAT_ALARM = 'bgd:heartbeat';
 const HEARTBEAT_PERIOD_MINUTES = 1;
@@ -8,6 +8,9 @@ const GOOGLE_AUTH_URL = 'https://accounts.google.com/o/oauth2/v2/auth';
 const GOOGLE_TOKEN_URL = 'https://oauth2.googleapis.com/token';
 const GOOGLE_USERINFO_URL = 'https://openidconnect.googleapis.com/v1/userinfo';
 const GOOGLE_CALENDAR_EVENTS_URL = 'https://www.googleapis.com/calendar/v3/calendars/primary/events';
+const GOOGLE_SYNC_QUEUE_KEY = 'bgdGoogleSyncQueueV1';
+const GOOGLE_SYNC_EVIDENCE_KEY = 'bgdGoogleSyncEvidenceV1';
+let flushingGoogleQueue = false;
 
 browser.browserAction.onClicked.addListener(async ()=>{
   await browser.tabs.create({url: browser.runtime.getURL('popup.html')});
@@ -23,34 +26,73 @@ browser.runtime.onMessage.addListener((message)=>{
   if(message?.type === 'BGD_APPOINTMENT_DELETED') return handleDeleted(message.appointment);
 });
 
+async function appendGoogleEvidence(type,data={}){
+  const { [GOOGLE_SYNC_EVIDENCE_KEY]: rows=[] } = await browser.storage.local.get(GOOGLE_SYNC_EVIDENCE_KEY);
+  rows.push({at:new Date().toISOString(),type,data});
+  if(rows.length>300) rows.splice(0,rows.length-300);
+  await browser.storage.local.set({[GOOGLE_SYNC_EVIDENCE_KEY]:rows});
+}
+
+async function enqueueGoogleSync(action,appointment,error){
+  const { [GOOGLE_SYNC_QUEUE_KEY]: queue=[] } = await browser.storage.local.get(GOOGLE_SYNC_QUEUE_KEY);
+  const id=appointment?.id;
+  if(!id) return {ok:false,error:'appointment_id_missing'};
+  // Coalesce por agendamento: delete vence update/create; update substitui create/update mais antigo.
+  const existingIndex=queue.findIndex(x=>x.appointmentId===id);
+  const item={queueId:crypto.randomUUID(),appointmentId:id,action,appointment,createdAt:new Date().toISOString(),attempts:0,lastError:String(error||'offline')};
+  if(existingIndex>=0){
+    const existing=queue[existingIndex];
+    if(action==='delete') queue[existingIndex]=item;
+    else if(existing.action==='create' && action==='update') queue[existingIndex]={...item,action:'create'};
+    else if(existing.action!=='delete') queue[existingIndex]=item;
+  }else queue.push(item);
+  await browser.storage.local.set({[GOOGLE_SYNC_QUEUE_KEY]:queue});
+  await appendGoogleEvidence('google_sync.queued',{action,appointmentId:id,error:String(error||'offline')});
+  return {ok:true,queued:true,offline:true};
+}
+
+async function safeGoogleMutation(action,appointment){
+  try{
+    let result;
+    if(action==='create') result=await createGoogleCalendarEvent(appointment);
+    else if(action==='update') result=await updateGoogleCalendarEvent(appointment);
+    else result=await deleteGoogleCalendarEvent(appointment.id);
+    if(result?.ok) return result;
+    if(result?.reason==='google_not_connected') return result;
+    return enqueueGoogleSync(action,appointment,result?.error||result?.reason||'google_sync_failed');
+  }catch(error){
+    return enqueueGoogleSync(action,appointment,error?.message||error);
+  }
+}
+
 async function handleCreated(a){
   await scheduleAppointmentAlarm(a);
-  const google = await createGoogleCalendarEvent(a);
+  const google = await safeGoogleMutation('create',a);
   return {ok:true,google};
 }
 async function handleUpdated(a){
   await browser.alarms.clear(`bgd:${a.id}`);
   await scheduleAppointmentAlarm(a);
-  const google = await updateGoogleCalendarEvent(a);
+  const google = await safeGoogleMutation('update',a);
   return {ok:true,google};
 }
 async function handleDeleted(a){
   await browser.alarms.clear(`bgd:${a.id}`);
-  const google = await deleteGoogleCalendarEvent(a.id);
+  const google = await safeGoogleMutation('delete',a);
   return {ok:true,google};
 }
 
 browser.alarms.onAlarm.addListener(async (alarm)=>{
-  if(alarm.name === HEARTBEAT_ALARM){ await sweepDueReminders(); return; }
+  if(alarm.name === HEARTBEAT_ALARM){ await sweepDueReminders(); await flushGoogleSyncQueue(); return; }
   if(!alarm.name.startsWith('bgd:')) return;
   await dispatchReminderById(alarm.name.slice(4));
 });
 
 browser.runtime.onStartup.addListener(async ()=>{
-  await ensureHeartbeat(); await rebuildAppointmentAlarms(); await sweepDueReminders();
+  await ensureHeartbeat(); await rebuildAppointmentAlarms(); await sweepDueReminders(); await flushGoogleSyncQueue();
 });
 browser.runtime.onInstalled.addListener(async ()=>{
-  await ensureHeartbeat(); await rebuildAppointmentAlarms(); await sweepDueReminders();
+  await ensureHeartbeat(); await rebuildAppointmentAlarms(); await sweepDueReminders(); await flushGoogleSyncQueue();
 });
 
 function base64Url(bytes){
@@ -139,14 +181,23 @@ async function validGoogleAccessToken(){
   const {googleOAuth=null}=await browser.storage.local.get('googleOAuth');
   if(!googleOAuth) return null;
   if(googleOAuth.access_token && Number(googleOAuth.expires_at || 0)>Date.now()+60000) return googleOAuth.access_token;
+  // Offline: token expirado continua servindo apenas como prova local para abrir o cache.
+  // Nunca é tratado como autenticação server-side enquanto não houver conectividade.
+  if(googleOAuth.access_token && typeof navigator!=='undefined' && navigator.onLine===false) return googleOAuth.access_token;
   if(!googleOAuth.refresh_token || !BGD_CONFIG.GOOGLE_CLIENT_SECRET || BGD_CONFIG.GOOGLE_CLIENT_SECRET==='MUDARASENHA') return null;
   const body=new URLSearchParams({client_id:BGD_CONFIG.GOOGLE_CLIENT_ID,client_secret:BGD_CONFIG.GOOGLE_CLIENT_SECRET,refresh_token:googleOAuth.refresh_token,grant_type:'refresh_token'});
-  const response=await fetch(GOOGLE_TOKEN_URL,{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:body.toString()});
-  const data=await response.json();
-  if(!response.ok || !data.access_token) return null;
-  const updated={...googleOAuth,access_token:data.access_token,expires_at:Date.now()+Number(data.expires_in || 3600)*1000,scope:data.scope || googleOAuth.scope,token_type:data.token_type || googleOAuth.token_type};
-  await browser.storage.local.set({googleOAuth:updated});
-  return updated.access_token;
+  try{
+    const response=await fetch(GOOGLE_TOKEN_URL,{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:body.toString()});
+    const data=await response.json();
+    if(!response.ok || !data.access_token) return null;
+    const updated={...googleOAuth,access_token:data.access_token,expires_at:Date.now()+Number(data.expires_in || 3600)*1000,scope:data.scope || googleOAuth.scope,token_type:data.token_type || googleOAuth.token_type};
+    await browser.storage.local.set({googleOAuth:updated});
+    return updated.access_token;
+  }catch(error){
+    // Sem rede, mantém o token local somente para acesso ao cache da própria extensão.
+    if(googleOAuth.access_token) return googleOAuth.access_token;
+    return null;
+  }
 }
 
 function googleEventPayload(a){
@@ -162,7 +213,8 @@ function googleEventPayload(a){
     summary:serviceName,
     description:`Cliente: ${clientName}\nWhatsApp: ${clientPhone}${clientEmail?`\nE-mail: ${clientEmail}`:''}\nOrigem: BrasilGuard Agenda`,
     start:{dateTime:start.toISOString()},end:{dateTime:end.toISOString()},
-    reminders:{useDefault:false,overrides:[{method:'popup',minutes}]}
+    reminders:{useDefault:false,overrides:[{method:'popup',minutes}]},
+    extendedProperties:{private:{bgdAppointmentId:String(a.id || '')}}
   };
 }
 async function createGoogleCalendarEvent(a){
@@ -201,6 +253,39 @@ async function deleteGoogleCalendarEvent(id){
   delete googleCalendarEvents[id]; await browser.storage.local.set({googleCalendarEvents}); return {ok:true};
 }
 
+async function flushGoogleSyncQueue(){
+  if(flushingGoogleQueue || (typeof navigator!=='undefined' && navigator.onLine===false)) return;
+  flushingGoogleQueue=true;
+  try{
+    const accessToken=await validGoogleAccessToken();
+    if(!accessToken) return;
+    const { [GOOGLE_SYNC_QUEUE_KEY]: queue=[] } = await browser.storage.local.get(GOOGLE_SYNC_QUEUE_KEY);
+    if(!queue.length) return;
+    const remaining=[];
+    for(let i=0;i<queue.length;i++){
+      const item=queue[i];
+      try{
+        let result;
+        if(item.action==='create') result=await createGoogleCalendarEvent(item.appointment);
+        else if(item.action==='update') result=await updateGoogleCalendarEvent(item.appointment);
+        else result=await deleteGoogleCalendarEvent(item.appointmentId);
+        if(result?.ok){
+          await appendGoogleEvidence('google_sync.synced',{action:item.action,appointmentId:item.appointmentId,queueId:item.queueId});
+          continue;
+        }
+        remaining.push({...item,attempts:Number(item.attempts||0)+1,lastError:result?.error||result?.reason||'google_sync_failed',lastAttemptAt:new Date().toISOString()});
+        for(let j=i+1;j<queue.length;j++) remaining.push(queue[j]);
+        break;
+      }catch(error){
+        remaining.push({...item,attempts:Number(item.attempts||0)+1,lastError:String(error?.message||error),lastAttemptAt:new Date().toISOString()});
+        for(let j=i+1;j<queue.length;j++) remaining.push(queue[j]);
+        break;
+      }
+    }
+    await browser.storage.local.set({[GOOGLE_SYNC_QUEUE_KEY]:remaining});
+  }finally{flushingGoogleQueue=false;}
+}
+
 async function ensureHeartbeat(){
   if(await browser.alarms.get(HEARTBEAT_ALARM)) return;
   browser.alarms.create(HEARTBEAT_ALARM,{delayInMinutes:1,periodInMinutes:HEARTBEAT_PERIOD_MINUTES});
@@ -213,7 +298,7 @@ async function scheduleAppointmentAlarm(a){
 }
 async function rebuildAppointmentAlarms(){
   const {appointments=[]}=await browser.storage.local.get('appointments');
-  for(const a of appointments) if(['scheduled','confirmed','rescheduled'].includes(a.status)) await scheduleAppointmentAlarm(a);
+  for(const a of appointments) if(['scheduled','confirmed','rescheduled','provisional_offline'].includes(a.status)) await scheduleAppointmentAlarm(a);
 }
 async function dispatchReminderById(id){
   const {appointments=[]}=await browser.storage.local.get('appointments');
@@ -223,7 +308,7 @@ async function sweepDueReminders(){
   const {appointments=[]}=await browser.storage.local.get('appointments');
   const now=Date.now();
   for(const a of appointments){
-    if(!['scheduled','confirmed','rescheduled'].includes(a.status) || !a?.reminders?.browser) continue;
+    if(!['scheduled','confirmed','rescheduled','provisional_offline'].includes(a.status) || !a?.reminders?.browser) continue;
     const startsAt=a.startsAt || a.starts_at;
     const fireAt=new Date(startsAt).getTime()-Number(a.reminders.minutesBefore || 0)*60000;
     if(fireAt<=now && fireAt>=now-REMINDER_GRACE_MS) await dispatchReminder(a);
@@ -240,4 +325,4 @@ async function dispatchReminder(a){
   reminderDispatch[key]=new Date().toISOString(); await browser.storage.local.set({reminderDispatch});
 }
 
-ensureHeartbeat(); rebuildAppointmentAlarms(); sweepDueReminders();
+ensureHeartbeat(); rebuildAppointmentAlarms(); sweepDueReminders(); flushGoogleSyncQueue();
