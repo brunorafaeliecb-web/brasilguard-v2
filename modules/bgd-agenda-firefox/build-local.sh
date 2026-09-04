@@ -3,7 +3,7 @@ set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")" && pwd)"
 SECRET_JSON="${1:-$(find "$HOME" -maxdepth 2 -type f -name 'client_secret*.json' | head -n1)}"
-OUT="${2:-$HOME/BrasilGuard-Agenda-Firefox-v0003.a.xpi}"
+OUT="${2:-$HOME/BrasilGuard-Agenda-v0003.a-build02.xpi}"
 BUILD="$(mktemp -d)"
 trap 'rm -rf "$BUILD"' EXIT
 
@@ -13,7 +13,7 @@ if [[ -z "${SECRET_JSON:-}" || ! -f "$SECRET_JSON" ]]; then
 fi
 
 # Copia apenas runtime/distribuição. Documentação, migrations e backend não entram no XPI.
-for f in manifest.json config.js background.js popup.html popup.css popup.js v0003-guard.js options.html options.js; do
+for f in manifest.json config.js background.js popup.html popup.css popup.js v0003-guard.js calendar-premium.js options.html options.js; do
   [[ -f "$ROOT/$f" ]] && cp "$ROOT/$f" "$BUILD/$f"
 done
 if [[ -d "$ROOT/icons" ]]; then cp -a "$ROOT/icons" "$BUILD/icons"; fi
@@ -38,7 +38,7 @@ print('CLIENT_SECRET_INJETADO=OK')
 PY
 
 # Gate mínimo de pacote: manifesto + UI + scripts obrigatórios.
-for f in manifest.json config.js background.js popup.html popup.css popup.js v0003-guard.js; do
+for f in manifest.json config.js background.js popup.html popup.css popup.js v0003-guard.js calendar-premium.js; do
   [[ -f "$BUILD/$f" ]] || { echo "ERRO: arquivo obrigatório ausente: $f" >&2; exit 1; }
 done
 
