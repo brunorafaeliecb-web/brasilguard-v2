@@ -1,0 +1,30 @@
+{
+  "manifest_version": 3,
+  "name": "BrasilGuard Agenda",
+  "version": "0.3.0",
+  "description": "Agenda integrada ao Google Calendar com operação offline-first, serviços, profissionais e licenciamento BrasilGuard.",
+  "minimum_chrome_version": "105",
+  "permissions": [
+    "storage",
+    "notifications",
+    "alarms",
+    "identity"
+  ],
+  "host_permissions": [
+    "https://zwtmcqtepkzxuhilxyjx.supabase.co/*",
+    "https://oauth2.googleapis.com/*",
+    "https://openidconnect.googleapis.com/*",
+    "https://www.googleapis.com/*",
+    "https://accounts.google.com/*"
+  ],
+  "action": {
+    "default_title": "Abrir BrasilGuard Agenda"
+  },
+  "background": {
+    "service_worker": "background-chrome.js"
+  },
+  "options_ui": {
+    "page": "options.html",
+    "open_in_tab": true
+  }
+}
