@@ -13,36 +13,36 @@
       <div><h1 id="brandName">BrasilGuard Agenda</h1><p id="brandWelcome" class="muted"></p></div>
     </header>
 
+    <section class="availability-card">
+      <div class="section-title-row">
+        <div>
+          <h2>Agenda visual</h2>
+          <p class="muted">Consulta pública: somente <strong>LIVRE</strong> e <strong>OCUPADO</strong>, sem nomes ou dados de terceiros.</p>
+        </div>
+      </div>
+      <div class="availability-controls four">
+        <label>Data<input id="availabilityDate" type="date" /></label>
+        <label>Profissional<select id="availabilityProfessional"><option value="">Todos / não definido</option></select></label>
+        <label>Duração do serviço (min)<input id="availabilityDuration" type="number" min="5" step="5" value="60" /></label>
+        <button id="checkSlots" type="button">Mostrar agenda</button>
+      </div>
+      <div id="slots" class="slots agenda-grid" aria-live="polite"></div>
+    </section>
+
     <section class="integration-card" aria-labelledby="google-title">
       <div><h2 id="google-title">Conta Google</h2><p id="googleStatus">Verificando conexão...</p><p id="roleStatus" class="muted"></p></div>
       <button id="connectGoogle" type="button">Entrar com Google</button>
     </section>
 
-    <section id="lockedNotice" class="notice warning">Para consultar a agenda ou agendar, entre com uma conta Google.</section>
+    <section id="lockedNotice" class="notice warning">Você pode consultar a agenda sem login. Para agendar, entre com Google e complete nome, e-mail e telefone.</section>
 
     <div id="appContent" hidden>
-      <section class="availability-card">
-        <div class="section-title-row">
-          <div>
-            <h2>Agenda visual</h2>
-            <p class="muted">A visão do cliente mostra somente <strong>LIVRE</strong> e <strong>OCUPADO</strong>, sem nomes ou dados de terceiros.</p>
-          </div>
-        </div>
-        <div class="availability-controls four">
-          <label>Data<input id="availabilityDate" type="date" /></label>
-          <label>Profissional<select id="availabilityProfessional"><option value="">Todos / não definido</option></select></label>
-          <label>Duração do serviço (min)<input id="availabilityDuration" type="number" min="5" step="5" value="60" /></label>
-          <button id="checkSlots" type="button">Mostrar agenda</button>
-        </div>
-        <div id="slots" class="slots agenda-grid" aria-live="polite"></div>
-      </section>
-
       <p class="required-note"><span class="required-mark">*</span> Campos obrigatórios</p>
       <form id="appointment-form" novalidate>
         <input id="editingId" type="hidden" />
         <label>Cliente <span class="required-mark">*</span><input id="clientName" required maxlength="120" /></label>
-        <label>WhatsApp <span class="required-mark">*</span><input id="clientPhone" required placeholder="5521999999999" /></label>
-        <label>E-mail<input id="clientEmail" type="email" /></label>
+        <label>WhatsApp <span class="required-mark">*</span><input id="clientPhone" required inputmode="tel" placeholder="5521999999999" /></label>
+        <label>E-mail <span class="required-mark">*</span><input id="clientEmail" type="email" required /></label>
         <label>Profissional<select id="professionalId"><option value="">Sem profissional específico</option></select></label>
         <label>Serviço <span class="required-mark">*</span><select id="serviceId" required><option value="">Selecione</option></select></label>
         <label>Data e hora <span class="required-mark">*</span><input id="startsAt" type="datetime-local" required /></label>
@@ -82,13 +82,13 @@
 
       <section id="catalogPanel" class="admin-panel" hidden>
         <h2>Cadastros</h2>
-        <p class="muted">Clientes avulsos, profissionais e serviços. A disponibilidade considera profissional + duração + buffers.</p>
+        <p class="muted">Clientes avulsos, profissionais e serviços. Nome, e-mail válido e telefone são obrigatórios nos cadastros pessoais.</p>
         <div class="catalog-grid">
           <form id="clientCatalogForm" class="catalog-card">
             <h3>Cliente avulso</h3>
-            <label>Nome<input id="catalogClientName" required /></label>
-            <label>WhatsApp<input id="catalogClientPhone" required /></label>
-            <label>E-mail<input id="catalogClientEmail" type="email" /></label>
+            <label>Nome <span class="required-mark">*</span><input id="catalogClientName" required /></label>
+            <label>WhatsApp <span class="required-mark">*</span><input id="catalogClientPhone" inputmode="tel" required /></label>
+            <label>E-mail <span class="required-mark">*</span><input id="catalogClientEmail" type="email" required /></label>
             <label>CPF/documento<input id="catalogClientDocument" /></label>
             <label>Nascimento<input id="catalogClientBirth" type="date" /></label>
             <label>Observações<textarea id="catalogClientNotes" rows="2"></textarea></label>
@@ -97,10 +97,10 @@
 
           <form id="professionalCatalogForm" class="catalog-card">
             <h3>Profissional</h3>
-            <label>Nome<input id="catalogProfessionalName" required /></label>
+            <label>Nome <span class="required-mark">*</span><input id="catalogProfessionalName" required /></label>
             <label>Especialidade<input id="catalogProfessionalSpecialty" /></label>
-            <label>Telefone<input id="catalogProfessionalPhone" /></label>
-            <label>E-mail<input id="catalogProfessionalEmail" type="email" /></label>
+            <label>Telefone <span class="required-mark">*</span><input id="catalogProfessionalPhone" inputmode="tel" required /></label>
+            <label>E-mail <span class="required-mark">*</span><input id="catalogProfessionalEmail" type="email" required /></label>
             <label>Foto (URL)<input id="catalogProfessionalPhoto" type="url" /></label>
             <button type="submit">Salvar profissional</button>
           </form>
@@ -147,5 +147,6 @@
   </main>
   <script src="config.js"></script>
   <script src="popup.js"></script>
+  <script src="v0003-guard.js"></script>
 </body>
 </html>
