@@ -1,12 +1,13 @@
 {
   "manifest_version": 2,
   "name": "BrasilGuard Agenda",
-  "version": "0.0.3",
+  "version": "0.0.4",
   "description": "Agendamentos, clientes e lembretes multicanal da BrasilGuard.",
   "permissions": [
     "storage",
     "notifications",
     "alarms",
+    "identity",
     "https://*/"
   ],
   "browser_action": {
