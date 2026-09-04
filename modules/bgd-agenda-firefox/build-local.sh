@@ -3,7 +3,7 @@ set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")" && pwd)"
 SECRET_JSON="${1:-$(find "$HOME" -maxdepth 2 -type f -name 'client_secret*.json' | head -n1)}"
-OUT="${2:-$HOME/BrasilGuard-Agenda-Firefox-v0003.d.xpi}"
+OUT="${2:-$HOME/BrasilGuard-Agenda-Firefox-v0003.e.xpi}"
 BUILD="$(mktemp -d)"
 trap 'rm -rf "$BUILD"' EXIT
 
