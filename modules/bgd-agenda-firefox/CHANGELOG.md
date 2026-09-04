@@ -2,6 +2,60 @@
 
 Todas as alterações relevantes deste módulo devem ser registradas aqui em ordem cronológica, sem apagar histórico anterior.
 
+## v0003.a — 2026-09-04
+
+**Versão interna:** `0.2.0`
+
+### Mudança arquitetural
+- BrasilGuard Agenda passa a ser tratada como produto/plataforma; a extensão Firefox vira um cliente da plataforma;
+- arquitetura multi-tenant com isolamento por `tenant_id`;
+- tenant padrão criado para preservar compatibilidade com os dados existentes;
+- memberships por tenant com papéis `customer`, `operator`, `manager`, `admin`, `owner`;
+- timezone IANA, locale e moeda por tenant.
+
+### Plataforma adicionada
+- `bgd_tenants`;
+- `bgd_tenant_memberships`;
+- `bgd_tenant_branding`;
+- `bgd_webhook_endpoints` e `bgd_webhook_deliveries`;
+- `bgd_calendar_connections` e `bgd_external_calendar_events`;
+- `bgd_payments`;
+- `bgd_idempotency_keys`;
+- `bgd_sync_outbox`;
+- `bgd_analytics_events`;
+- função `bgd_agenda_is_available_v3` considerando tenant, profissional, buffers e eventos externos.
+
+### Integrações e expansão
+- base para sincronização bidirecional Google/Microsoft;
+- base de webhooks assináveis e fila de retry para N8N;
+- abstração de pagamentos por provider;
+- idempotência para operações críticas;
+- outbox para evolução offline-first;
+- eventos de analytics/conversão;
+- API v1 documentada como contrato de expansão.
+
+### Regras preservadas
+- agenda pública pode ser vista sem login e mostra somente `LIVRE`/`OCUPADO`;
+- agendamento exige login Google;
+- cadastro deve estar 100% completo: nome, e-mail válido e telefone válido;
+- dados de terceiros nunca aparecem na agenda pública;
+- cancelamento permanece lógico e auditável.
+
+### Banco
+- migration `bgd_agenda_v0003_a_multitenant_platform_foundation` aplicada no Supabase;
+- dados existentes backfillados para o tenant padrão `brasilguard-default`;
+- tabelas operacionais existentes receberam `tenant_id`;
+- índice de serviços passa a ser único por tenant.
+
+### Segurança
+- RLS habilitado nas novas tabelas;
+- segredos continuam fora do Git;
+- tokens de calendário devem ser referenciados por `token_ref`, não persistidos na extensão;
+- toda evolução de API deve filtrar por `tenant_id`.
+
+### Status
+`FUNDAÇÃO IMPLEMENTADA — API DE PLATAFORMA AINDA NÃO PUBLICADA PELO CONECTOR; TESTES INTEGRADOS PENDENTES`
+
 ## v0002.b — 2026-09-04
 
 **Versão interna:** `0.1.1`
