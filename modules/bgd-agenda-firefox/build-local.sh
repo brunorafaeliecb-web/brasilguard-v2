@@ -3,7 +3,7 @@ set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")" && pwd)"
 SECRET_JSON="${1:-$(find "$HOME" -maxdepth 2 -type f -name 'client_secret*.json' | head -n1)}"
-OUT="${2:-$HOME/BrasilGuard-Agenda-Firefox-v0002.a.xpi}"
+OUT="${2:-$HOME/BrasilGuard-Agenda-Firefox-v0003.a.xpi}"
 BUILD="$(mktemp -d)"
 trap 'rm -rf "$BUILD"' EXIT
 
@@ -12,8 +12,12 @@ if [[ -z "${SECRET_JSON:-}" || ! -f "$SECRET_JSON" ]]; then
   exit 1
 fi
 
-cp -a "$ROOT"/. "$BUILD"/
-rm -f "$BUILD/build-local.sh"
+# Copia apenas runtime/distribuição. Documentação, migrations e backend não entram no XPI.
+for f in manifest.json config.js background.js popup.html popup.css popup.js v0003-guard.js options.html options.js; do
+  [[ -f "$ROOT/$f" ]] && cp "$ROOT/$f" "$BUILD/$f"
+done
+if [[ -d "$ROOT/icons" ]]; then cp -a "$ROOT/icons" "$BUILD/icons"; fi
+if [[ -d "$ROOT/assets" ]]; then cp -a "$ROOT/assets" "$BUILD/assets"; fi
 
 python3 - "$SECRET_JSON" "$BUILD/config.js" <<'PY'
 import json, pathlib, sys
@@ -32,6 +36,11 @@ if client_id not in text:
 config_file.write_text(text, encoding='utf-8')
 print('CLIENT_SECRET_INJETADO=OK')
 PY
+
+# Gate mínimo de pacote: manifesto + UI + scripts obrigatórios.
+for f in manifest.json config.js background.js popup.html popup.css popup.js v0003-guard.js; do
+  [[ -f "$BUILD/$f" ]] || { echo "ERRO: arquivo obrigatório ausente: $f" >&2; exit 1; }
+done
 
 rm -f "$OUT"
 (
