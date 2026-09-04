@@ -37,7 +37,6 @@ async function enqueueGoogleSync(action,appointment,error){
   const { [GOOGLE_SYNC_QUEUE_KEY]: queue=[] } = await browser.storage.local.get(GOOGLE_SYNC_QUEUE_KEY);
   const id=appointment?.id;
   if(!id) return {ok:false,error:'appointment_id_missing'};
-  // Coalesce por agendamento: delete vence update/create; update substitui create/update mais antigo.
   const existingIndex=queue.findIndex(x=>x.appointmentId===id);
   const item={queueId:crypto.randomUUID(),appointmentId:id,action,appointment,createdAt:new Date().toISOString(),attempts:0,lastError:String(error||'offline')};
   if(existingIndex>=0){
@@ -52,6 +51,11 @@ async function enqueueGoogleSync(action,appointment,error){
 }
 
 async function safeGoogleMutation(action,appointment){
+  // Se a própria operação BrasilGuard ainda está offline/provisória, não toque no Google.
+  // A sincronização Google só é disparada por offline-sync.js DEPOIS que o backend confirmar.
+  if((typeof navigator!=='undefined' && navigator.onLine===false) || appointment?.status==='provisional_offline'){
+    return {ok:true,deferred:true,reason:'backend_confirmation_pending'};
+  }
   try{
     let result;
     if(action==='create') result=await createGoogleCalendarEvent(appointment);
@@ -181,8 +185,6 @@ async function validGoogleAccessToken(){
   const {googleOAuth=null}=await browser.storage.local.get('googleOAuth');
   if(!googleOAuth) return null;
   if(googleOAuth.access_token && Number(googleOAuth.expires_at || 0)>Date.now()+60000) return googleOAuth.access_token;
-  // Offline: token expirado continua servindo apenas como prova local para abrir o cache.
-  // Nunca é tratado como autenticação server-side enquanto não houver conectividade.
   if(googleOAuth.access_token && typeof navigator!=='undefined' && navigator.onLine===false) return googleOAuth.access_token;
   if(!googleOAuth.refresh_token || !BGD_CONFIG.GOOGLE_CLIENT_SECRET || BGD_CONFIG.GOOGLE_CLIENT_SECRET==='MUDARASENHA') return null;
   const body=new URLSearchParams({client_id:BGD_CONFIG.GOOGLE_CLIENT_ID,client_secret:BGD_CONFIG.GOOGLE_CLIENT_SECRET,refresh_token:googleOAuth.refresh_token,grant_type:'refresh_token'});
@@ -194,7 +196,6 @@ async function validGoogleAccessToken(){
     await browser.storage.local.set({googleOAuth:updated});
     return updated.access_token;
   }catch(error){
-    // Sem rede, mantém o token local somente para acesso ao cache da própria extensão.
     if(googleOAuth.access_token) return googleOAuth.access_token;
     return null;
   }
@@ -310,7 +311,7 @@ async function sweepDueReminders(){
   for(const a of appointments){
     if(!['scheduled','confirmed','rescheduled','provisional_offline'].includes(a.status) || !a?.reminders?.browser) continue;
     const startsAt=a.startsAt || a.starts_at;
-    const fireAt=new Date(startsAt).getTime()-Number(a.reminders.minutesBefore || 0)*60000;
+    const fireAt=new Date(startsAt).getTime()-Number(a.reminders?.minutesBefore || 0)*60000;
     if(fireAt<=now && fireAt>=now-REMINDER_GRACE_MS) await dispatchReminder(a);
   }
 }
