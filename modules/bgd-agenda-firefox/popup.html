@@ -62,7 +62,7 @@
         <label>Duração (min) <span class="required-mark">*</span><input id="durationMinutes" type="number" min="5" step="5" value="60" required /></label>
         <div id="availabilityInline" class="availability-inline">Escolha profissional, serviço, data e hora para verificar disponibilidade.</div>
         <fieldset id="permissionFieldset" hidden><legend>Permissões do agendamento</legend><label><input id="allowEdit" type="checkbox" checked /> Permitir edição</label><label><input id="allowDelete" type="checkbox" checked /> Permitir cancelamento</label><label><input id="allowReschedule" type="checkbox" checked /> Permitir reagendamento</label><label>Até quantas horas antes?<input id="rescheduleLimitHours" type="number" min="0" value="6" /></label></fieldset>
-        <fieldset><legend>Lembretes e mensagens</legend><label><input id="reminderEmail" type="checkbox" checked /> E-mail</label><label><input id="reminderWhatsapp" type="checkbox" checked /> WhatsApp</label><label><input id="reminderBrowser" type="checkbox" checked /> Firefox</label><label>Minutos antes <span class="required-mark">*</span><input id="reminderMinutes" type="number" min="1" value="60" required /></label><p class="field-note">Criar, reagendar e cancelar geram eventos transacionais no backend para os canais habilitados.</p></fieldset>
+        <fieldset><legend>Lembretes e mensagens</legend><label><input id="reminderEmail" type="checkbox" checked /> E-mail</label><label><input id="reminderWhatsapp" type="checkbox" checked /> WhatsApp</label><label><input id="reminderBrowser" type="checkbox" checked /> Navegador</label><label>Minutos antes <span class="required-mark">*</span><input id="reminderMinutes" type="number" min="1" value="60" required /></label><p class="field-note">Criar, reagendar e cancelar geram eventos transacionais no backend para os canais habilitados.</p></fieldset>
         <div class="form-actions"><button id="saveAppointment" type="submit">Salvar agendamento</button><button id="cancelEdit" type="button" class="secondary" hidden>Cancelar edição</button></div>
       </form>
 
@@ -79,6 +79,7 @@
       <section id="brandingPanel" class="admin-panel" hidden><h2>Painel de aparência</h2><div class="branding-grid"><label>Nome da empresa<input id="brandingBusinessName" maxlength="120" /></label><label>URL do logo<input id="brandingLogoUrl" type="url" /></label><label>URL da capa<input id="brandingCoverUrl" type="url" /></label><label>Cor principal<input id="brandingPrimary" type="color" /></label><label>Cor secundária<input id="brandingSecondary" type="color" /></label><label>Cor do fundo<input id="brandingBackground" type="color" /></label><label>Raio dos botões<input id="brandingRadius" type="number" min="0" max="40" /></label><label>Estilo dos botões<select id="brandingButtonStyle"><option value="solid">Sólido</option><option value="outline">Contorno</option><option value="soft">Suave</option></select></label><label class="wide">Mensagem de boas-vindas<textarea id="brandingWelcome" rows="3"></textarea></label></div><button id="saveBranding" type="button">Salvar tema</button></section>
     </div>
   </main>
+  <script src="platform-compat.js"></script>
   <script src="config.js"></script>
   <script src="offline-sync.js"></script>
   <script src="popup.js"></script>
