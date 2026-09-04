@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "BrasilGuard Agenda",
-  "version": "0.3.1",
+  "version": "0.3.2",
   "description": "Agenda integrada ao Google Calendar com operação offline-first, serviços, profissionais e licenciamento BrasilGuard.",
   "minimum_chrome_version": "105",
   "permissions": [
