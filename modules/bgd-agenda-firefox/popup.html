@@ -9,6 +9,15 @@
 <body>
   <main>
     <h1>BrasilGuard Agenda</h1>
+
+    <section class="integration-card" aria-labelledby="google-title">
+      <div>
+        <h2 id="google-title">Google Agenda</h2>
+        <p id="googleStatus">Verificando conexão...</p>
+      </div>
+      <button id="connectGoogle" type="button">Conectar Google Agenda</button>
+    </section>
+
     <p class="required-note"><span class="required-mark">*</span> Campos obrigatórios</p>
     <form id="appointment-form" novalidate>
       <label>Cliente <span class="required-mark">*</span><input id="clientName" required maxlength="120" /></label>
