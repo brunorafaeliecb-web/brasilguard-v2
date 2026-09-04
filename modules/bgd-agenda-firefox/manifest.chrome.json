@@ -16,7 +16,7 @@
     "https://www.googleapis.com/*"
   ],
   "oauth2": {
-    "client_id": "MUDARASENHA_CHROME_CLIENT_ID",
+    "client_id": "752721916663-10h0bn4kv1v3f6lv51mano0tq3sr574j.apps.googleusercontent.com",
     "scopes": [
       "openid",
       "email",
