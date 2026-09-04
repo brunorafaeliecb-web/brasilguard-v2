@@ -15,15 +15,35 @@ browser.browserAction.onClicked.addListener(async ()=>{
 browser.runtime.onMessage.addListener((message)=>{
   if(message?.type === 'BGD_GOOGLE_CONNECT') return connectGoogleCalendar();
   if(message?.type === 'BGD_GOOGLE_STATUS') return getGoogleStatus();
-  if(message?.type !== 'BGD_APPOINTMENT_CREATED') return;
 
-  return (async()=>{
-    const a = message.appointment;
-    await scheduleAppointmentAlarm(a);
-    await enqueueIntegrations(a);
-    await createGoogleCalendarEvent(a);
-    return {ok:true};
-  })();
+  if(message?.type === 'BGD_APPOINTMENT_CREATED'){
+    return (async()=>{
+      const a = message.appointment;
+      await scheduleAppointmentAlarm(a);
+      await enqueueIntegrations(a);
+      const google = await createGoogleCalendarEvent(a);
+      return {ok:true, google};
+    })();
+  }
+
+  if(message?.type === 'BGD_APPOINTMENT_UPDATED'){
+    return (async()=>{
+      const a = message.appointment;
+      await browser.alarms.clear(`bgd:${a.id}`);
+      await scheduleAppointmentAlarm(a);
+      const google = await updateGoogleCalendarEvent(a);
+      return {ok:true, google};
+    })();
+  }
+
+  if(message?.type === 'BGD_APPOINTMENT_DELETED'){
+    return (async()=>{
+      const a = message.appointment;
+      await browser.alarms.clear(`bgd:${a.id}`);
+      const google = await deleteGoogleCalendarEvent(a.id);
+      return {ok:true, google};
+    })();
+  }
 });
 
 browser.alarms.onAlarm.addListener(async (alarm)=>{
@@ -178,16 +198,10 @@ async function validGoogleAccessToken(){
   return updated.access_token;
 }
 
-async function createGoogleCalendarEvent(appointment){
-  const accessToken = await validGoogleAccessToken();
-  if(!accessToken) return {ok:false, skipped:true, reason:'google_not_connected'};
-
-  const {googleCalendarEvents={}} = await browser.storage.local.get('googleCalendarEvents');
-  if(googleCalendarEvents[appointment.id]) return {ok:true, duplicatePrevented:true};
-
+function googleEventPayload(appointment){
   const start = new Date(appointment.startsAt);
   const end = new Date(start.getTime() + Number(appointment.durationMinutes || 60) * 60000);
-  const payload = {
+  return {
     summary: appointment.serviceName,
     description: `Cliente: ${appointment.clientName}\nWhatsApp: ${appointment.clientPhone}${appointment.clientEmail ? `\nE-mail: ${appointment.clientEmail}` : ''}\nOrigem: BrasilGuard Agenda`,
     start:{dateTime:start.toISOString()},
@@ -197,6 +211,14 @@ async function createGoogleCalendarEvent(appointment){
       overrides:[{method:'popup', minutes:Number(appointment.reminders?.minutesBefore || 60)}]
     }
   };
+}
+
+async function createGoogleCalendarEvent(appointment){
+  const accessToken = await validGoogleAccessToken();
+  if(!accessToken) return {ok:false, skipped:true, reason:'google_not_connected'};
+
+  const {googleCalendarEvents={}} = await browser.storage.local.get('googleCalendarEvents');
+  if(googleCalendarEvents[appointment.id]) return {ok:true, duplicatePrevented:true};
 
   const response = await fetch(GOOGLE_CALENDAR_EVENTS_URL, {
     method:'POST',
@@ -204,7 +226,7 @@ async function createGoogleCalendarEvent(appointment){
       'Authorization':`Bearer ${accessToken}`,
       'Content-Type':'application/json'
     },
-    body:JSON.stringify(payload)
+    body:JSON.stringify(googleEventPayload(appointment))
   });
   const data = await response.json();
   if(!response.ok){
@@ -215,10 +237,70 @@ async function createGoogleCalendarEvent(appointment){
   googleCalendarEvents[appointment.id] = {
     eventId:data.id,
     htmlLink:data.htmlLink || null,
-    createdAt:new Date().toISOString()
+    createdAt:new Date().toISOString(),
+    updatedAt:new Date().toISOString()
   };
   await browser.storage.local.set({googleCalendarEvents});
   return {ok:true, eventId:data.id, htmlLink:data.htmlLink || null};
+}
+
+async function updateGoogleCalendarEvent(appointment){
+  const accessToken = await validGoogleAccessToken();
+  if(!accessToken) return {ok:false, skipped:true, reason:'google_not_connected'};
+
+  const {googleCalendarEvents={}} = await browser.storage.local.get('googleCalendarEvents');
+  const mapping = googleCalendarEvents[appointment.id];
+  if(!mapping?.eventId) return createGoogleCalendarEvent(appointment);
+
+  const url = `${GOOGLE_CALENDAR_EVENTS_URL}/${encodeURIComponent(mapping.eventId)}`;
+  const response = await fetch(url, {
+    method:'PATCH',
+    headers:{
+      'Authorization':`Bearer ${accessToken}`,
+      'Content-Type':'application/json'
+    },
+    body:JSON.stringify(googleEventPayload(appointment))
+  });
+  const data = await response.json();
+  if(!response.ok){
+    console.warn('BGD Agenda: atualização no Google Calendar falhou.', data);
+    return {ok:false, error:data?.error?.message || `google_calendar_http_${response.status}`};
+  }
+
+  googleCalendarEvents[appointment.id] = {
+    ...mapping,
+    eventId:data.id || mapping.eventId,
+    htmlLink:data.htmlLink || mapping.htmlLink || null,
+    updatedAt:new Date().toISOString()
+  };
+  await browser.storage.local.set({googleCalendarEvents});
+  return {ok:true, eventId:googleCalendarEvents[appointment.id].eventId};
+}
+
+async function deleteGoogleCalendarEvent(appointmentId){
+  const {googleCalendarEvents={}} = await browser.storage.local.get('googleCalendarEvents');
+  const mapping = googleCalendarEvents[appointmentId];
+  if(!mapping?.eventId) return {ok:true, skipped:true, reason:'no_google_mapping'};
+
+  const accessToken = await validGoogleAccessToken();
+  if(!accessToken) return {ok:false, skipped:true, reason:'google_not_connected'};
+
+  const url = `${GOOGLE_CALENDAR_EVENTS_URL}/${encodeURIComponent(mapping.eventId)}`;
+  const response = await fetch(url, {
+    method:'DELETE',
+    headers:{'Authorization':`Bearer ${accessToken}`}
+  });
+
+  if(!response.ok && response.status !== 404 && response.status !== 410){
+    let data={};
+    try{ data=await response.json(); }catch(_error){}
+    console.warn('BGD Agenda: exclusão no Google Calendar falhou.', data);
+    return {ok:false, error:data?.error?.message || `google_calendar_http_${response.status}`};
+  }
+
+  delete googleCalendarEvents[appointmentId];
+  await browser.storage.local.set({googleCalendarEvents});
+  return {ok:true};
 }
 
 async function ensureHeartbeat(){
