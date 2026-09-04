@@ -1,8 +1,8 @@
 {
   "manifest_version": 2,
   "name": "BrasilGuard Agenda",
-  "version": "0.2.3",
-  "description": "BrasilGuard Agenda v0003.c: agenda integrada ao Google Calendar com base comercial de licenças, pagamentos e entrega por e-mail.",
+  "version": "0.2.4",
+  "description": "BrasilGuard Agenda v0003.d: agenda integrada ao Google Calendar com licenciamento comercial e operação offline-first governada.",
   "permissions": [
     "storage",
     "notifications",
