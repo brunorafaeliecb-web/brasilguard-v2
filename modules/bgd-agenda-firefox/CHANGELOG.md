@@ -2,6 +2,45 @@
 
 Todas as alterações relevantes deste módulo devem ser registradas aqui em ordem cronológica, sem apagar histórico anterior.
 
+## v0002.b — 2026-09-04
+
+**Versão interna:** `0.1.1`
+
+### Adicionado
+- agenda visual com todos os blocos do expediente marcados apenas como `LIVRE` ou `OCUPADO` para cliente comum;
+- preservação explícita de privacidade: nenhum nome ou dado de terceiros é exposto na agenda pública;
+- cadastro avulso de clientes;
+- cadastro de profissionais;
+- cadastro de serviços;
+- vínculo serviço ↔ profissional;
+- duração específica por profissional e serviço;
+- preço opcional por profissional e serviço;
+- buffer antes/depois por profissional e serviço;
+- flag para permitir ou bloquear agendamento online por profissional/serviço;
+- agenda e bloqueios específicos por profissional;
+- agendamento passa a registrar `client_id`, `professional_id` e `service_id` sem perder os campos textuais de evidência;
+- validação de conflito por profissional + intervalo completo;
+- Edge Function `bgd-agenda-appointments` atualizada para versão 3;
+- painel de cadastros internos para clientes, profissionais, serviços e vínculos;
+- seleção de profissional e serviço no fluxo de agendamento.
+
+### Regras funcionais
+- cliente comum vê a agenda visual, mas somente `LIVRE`/`OCUPADO`;
+- operador/gestor/admin podem acessar cadastros conforme RBAC;
+- o mesmo profissional não pode receber dois agendamentos sobrepostos;
+- a duração considerada pode ser a duração específica do vínculo profissional/serviço;
+- agendamento avulso continua permitido para usuário interno autorizado;
+- cliente pode existir sem agendamento e profissional pode existir sem serviço vinculado.
+
+### Banco
+- novas tabelas `bgd_agenda_professionals`, `bgd_agenda_professional_services`, `bgd_agenda_professional_hours`, `bgd_agenda_professional_blocks`;
+- `bgd_clients` ampliada com documento, nascimento, observações, status e `updated_at`;
+- `bgd_appointments` ampliada com chaves para cliente, profissional e serviço;
+- função de disponibilidade atualizada para considerar profissional.
+
+### Status
+`IMPLEMENTADO — AGUARDANDO TESTE INTEGRADO E CORREÇÕES`
+
 ## v0002.a — 2026-09-04
 
 **Versão interna:** `0.1.0`
