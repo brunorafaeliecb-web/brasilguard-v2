@@ -1,8 +1,8 @@
 {
   "manifest_version": 2,
   "name": "BrasilGuard Agenda",
-  "version": "0.0.7",
-  "description": "Agendamentos, clientes e lembretes multicanal da BrasilGuard.",
+  "version": "0.1.0",
+  "description": "Agenda BrasilGuard com login Google obrigatório, disponibilidade por duração, RBAC, branding e mensagens transacionais.",
   "permissions": [
     "storage",
     "notifications",
