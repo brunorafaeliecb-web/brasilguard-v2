@@ -1,15 +1,15 @@
 {
   "manifest_version": 2,
   "name": "BrasilGuard Agenda",
-  "version": "0.2.7",
-  "description": "BrasilGuard Agenda v0003.g: agenda protegida com Google Calendar, operação offline e painel de comissões/rateio por profissional e serviço.",
+  "version": "0.2.8",
+  "description": "BrasilGuard Agenda v0003.h: agenda protegida com OAuth Google sem segredo no cliente, Google Calendar, operação offline e comissões/rateio.",
   "permissions": [
     "storage",
     "notifications",
     "alarms",
     "identity",
     "https://zwtmcqtepkzxuhilxyjx.supabase.co/*",
-    "https://oauth2.googleapis.com/*",
+    "https://openidconnect.googleapis.com/*",
     "https://www.googleapis.com/*",
     "https://accounts.google.com/*"
   ],
