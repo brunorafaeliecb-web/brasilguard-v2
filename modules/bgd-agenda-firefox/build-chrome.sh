@@ -16,13 +16,17 @@ if [[ -d "$ROOT/icons" ]]; then cp -a "$ROOT/icons" "$BUILD/icons"; fi
 if [[ -d "$ROOT/assets" ]]; then cp -a "$ROOT/assets" "$BUILD/assets"; fi
 
 python3 - "$BUILD/config.js" "$BUILD/manifest.json" <<'PY'
-import json, pathlib, sys
+import json, pathlib, re, sys
 config = pathlib.Path(sys.argv[1])
 manifest = pathlib.Path(sys.argv[2])
 
 text = config.read_text(encoding='utf-8')
-if 'GOOGLE_CLIENT_SECRET: "MUDARASENHA"' not in text:
-    raise SystemExit('ERRO: config.js contém client_secret inesperado; build bloqueado')
+# Chrome usa chrome.identity + manifest.oauth2. O pacote público não pode conter
+# nenhuma propriedade GOOGLE_CLIENT_SECRET nem valor real de client_secret.
+if re.search(r'\bGOOGLE_CLIENT_SECRET\s*:', text):
+    raise SystemExit('ERRO: config.js contém GOOGLE_CLIENT_SECRET; build bloqueado')
+if re.search(r'\bclient_secret\s*[:=]', text, flags=re.IGNORECASE):
+    raise SystemExit('ERRO: config.js contém client_secret; build bloqueado')
 
 data = json.loads(manifest.read_text(encoding='utf-8'))
 client_id = data.get('oauth2', {}).get('client_id', '').strip()
