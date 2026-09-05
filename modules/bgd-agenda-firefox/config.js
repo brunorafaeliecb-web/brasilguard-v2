@@ -1,0 +1,21 @@
+// BrasilGuard Agenda — configurações públicas de integração.
+// NUNCA versionar senhas, service role ou tokens permanentes.
+// OAuth Google: o client_secret permanece exclusivamente no backend Supabase.
+const BGD_CONFIG = {
+  SUPABASE_URL: "https://zwtmcqtepkzxuhilxyjx.supabase.co",
+  SUPABASE_PUBLISHABLE_KEY: "sb_publishable_O-JhQJkS7jmHwPn7qYExZg_pjIyIZ-N",
+  BACKEND_URL: "https://zwtmcqtepkzxuhilxyjx.supabase.co/functions/v1/bgd-agenda-appointments",
+  GOOGLE_OAUTH_API_URL: "https://zwtmcqtepkzxuhilxyjx.supabase.co/functions/v1/bgd-agenda-google-oauth-v1",
+  PLATFORM_API_URL: "https://zwtmcqtepkzxuhilxyjx.supabase.co/functions/v1/bgd-agenda-platform-v3",
+  PROFILE_API_URL: "https://zwtmcqtepkzxuhilxyjx.supabase.co/functions/v1/bgd-agenda-profile-v3",
+  COMMERCE_API_URL: "https://zwtmcqtepkzxuhilxyjx.supabase.co/functions/v1/bgd-agenda-commerce-v1",
+  // Só alterar para true após definir plano/preço, InfiniteTag e entrega de e-mail.
+  COMMERCE_ENFORCED: false,
+  // Quando o comércio estiver ativo, uma licença previamente validada pode operar offline por até 72h.
+  OFFLINE_LICENSE_GRACE_HOURS: 72,
+  DEFAULT_TENANT_SLUG: "brasilguard-default",
+  API_VERSION: "v1",
+  GOOGLE_CLIENT_ID: "752721916663-l59ed4t5h8bcts9b0pojk4ed7aca5l5n.apps.googleusercontent.com",
+  GOOGLE_SCOPE: "openid email profile https://www.googleapis.com/auth/calendar.events",
+  WHATSAPP_PHONE_NUMBER_ID: "MUDARASENHA"
+};
