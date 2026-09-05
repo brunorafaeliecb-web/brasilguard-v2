@@ -1,0 +1,33 @@
+{
+  "manifest_version": 2,
+  "name": "BrasilGuard Agenda",
+  "version": "0.2.8",
+  "description": "BrasilGuard Agenda v0003.h: agenda protegida com OAuth Google sem segredo no cliente, Google Calendar, operação offline e comissões/rateio.",
+  "permissions": [
+    "storage",
+    "notifications",
+    "alarms",
+    "identity",
+    "https://zwtmcqtepkzxuhilxyjx.supabase.co/*",
+    "https://openidconnect.googleapis.com/*",
+    "https://www.googleapis.com/*",
+    "https://accounts.google.com/*"
+  ],
+  "browser_action": {
+    "default_title": "Abrir BrasilGuard Agenda"
+  },
+  "background": {
+    "scripts": ["config.js", "background.js"],
+    "persistent": false
+  },
+  "options_ui": {
+    "page": "options.html",
+    "open_in_tab": true
+  },
+  "applications": {
+    "gecko": {
+      "id": "agenda@brasilguard.local",
+      "strict_min_version": "109.0"
+    }
+  }
+}

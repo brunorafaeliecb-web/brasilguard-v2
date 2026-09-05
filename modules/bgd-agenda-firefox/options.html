@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <title>BrasilGuard Agenda — Configurações</title>
+</head>
+<body>
+<main>
+  <h1>BrasilGuard Agenda</h1>
+
+  <section>
+    <h2>Operador</h2>
+    <p id="auth-state">Não autenticado.</p>
+    <form id="login-form">
+      <label>E-mail <input id="loginEmail" type="email" autocomplete="username" required></label><br>
+      <label>Senha <input id="loginPassword" type="password" autocomplete="current-password" required></label><br>
+      <button type="submit">Entrar</button>
+      <button id="logout" type="button">Sair</button>
+    </form>
+    <p><small>A senha não é salva na extensão. A sessão é armazenada localmente pelo navegador.</small></p>
+  </section>
+
+  <hr>
+
+  <section>
+    <h2>Agenda</h2>
+    <form id="settings">
+      <label>Minutos padrão antes do lembrete <input id="defaultReminderMinutes" type="number" min="1" value="60"></label><br>
+      <label>Limite padrão de reagendamento (horas) <input id="defaultRescheduleLimitHours" type="number" min="0" value="6"></label><br>
+      <button type="submit">Salvar</button>
+    </form>
+  </section>
+
+  <p id="status"></p>
+  <hr>
+  <p><strong>Integrações pendentes:</strong> procurar por <code>MUDARASENHA</code> antes dos testes integrados.</p>
+</main>
+<script src="platform-compat.js"></script>
+<script src="config.js"></script>
+<script src="options.js"></script>
+</body>
+</html>
