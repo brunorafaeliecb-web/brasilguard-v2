@@ -5,7 +5,6 @@ const HEARTBEAT_ALARM = 'bgd:heartbeat';
 const HEARTBEAT_PERIOD_MINUTES = 1;
 const REMINDER_GRACE_MS = 5 * 60 * 1000;
 const GOOGLE_AUTH_URL = 'https://accounts.google.com/o/oauth2/v2/auth';
-const GOOGLE_TOKEN_URL = 'https://oauth2.googleapis.com/token';
 const GOOGLE_USERINFO_URL = 'https://openidconnect.googleapis.com/v1/userinfo';
 const GOOGLE_CALENDAR_EVENTS_URL = 'https://www.googleapis.com/calendar/v3/calendars/primary/events';
 const GOOGLE_SYNC_QUEUE_KEY = 'bgdGoogleSyncQueueV1';
@@ -117,11 +116,20 @@ function googleRedirectUri(){
   return `http://127.0.0.1/mozoauth2/${subdomain}`;
 }
 
+async function oauthBackend(payload){
+  const response=await fetch(BGD_CONFIG.GOOGLE_OAUTH_API_URL,{
+    method:'POST',
+    headers:{'Content-Type':'application/json','apikey':BGD_CONFIG.SUPABASE_PUBLISHABLE_KEY},
+    body:JSON.stringify(payload)
+  });
+  const data=await response.json().catch(()=>({}));
+  if(!response.ok || !data?.ok) throw new Error(data?.error_description || data?.error || `google_oauth_backend_http_${response.status}`);
+  return data;
+}
+
 async function connectGoogle(){
   try{
-    if(!BGD_CONFIG.GOOGLE_CLIENT_SECRET || BGD_CONFIG.GOOGLE_CLIENT_SECRET === 'MUDARASENHA'){
-      throw new Error('google_client_secret_build_pending');
-    }
+    if(!BGD_CONFIG.GOOGLE_OAUTH_API_URL) throw new Error('google_oauth_backend_pending');
     const verifier=randomUrlSafe(64);
     const challenge=await sha256Base64Url(verifier);
     const state=randomUrlSafe(24);
@@ -144,17 +152,8 @@ async function connectGoogle(){
     const code=callback.searchParams.get('code');
     if(!code) throw new Error('google_oauth_code_missing');
 
-    const tokenBody=new URLSearchParams({
-      client_id:BGD_CONFIG.GOOGLE_CLIENT_ID,
-      client_secret:BGD_CONFIG.GOOGLE_CLIENT_SECRET,
-      code,
-      code_verifier:verifier,
-      grant_type:'authorization_code',
-      redirect_uri:redirectUri
-    });
-    const tokenResponse=await fetch(GOOGLE_TOKEN_URL,{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:tokenBody.toString()});
-    const tokenData=await tokenResponse.json();
-    if(!tokenResponse.ok || !tokenData.access_token) throw new Error(tokenData.error_description || tokenData.error || `google_token_http_${tokenResponse.status}`);
+    const tokenData=await oauthBackend({action:'exchange',code,codeVerifier:verifier,redirectUri});
+    if(!tokenData.access_token) throw new Error('google_oauth_access_token_missing');
 
     const profileResponse=await fetch(GOOGLE_USERINFO_URL,{headers:{Authorization:`Bearer ${tokenData.access_token}`}});
     const profile=profileResponse.ok ? await profileResponse.json() : {};
@@ -186,17 +185,16 @@ async function validGoogleAccessToken(){
   if(!googleOAuth) return null;
   if(googleOAuth.access_token && Number(googleOAuth.expires_at || 0)>Date.now()+60000) return googleOAuth.access_token;
   if(googleOAuth.access_token && typeof navigator!=='undefined' && navigator.onLine===false) return googleOAuth.access_token;
-  if(!googleOAuth.refresh_token || !BGD_CONFIG.GOOGLE_CLIENT_SECRET || BGD_CONFIG.GOOGLE_CLIENT_SECRET==='MUDARASENHA') return null;
-  const body=new URLSearchParams({client_id:BGD_CONFIG.GOOGLE_CLIENT_ID,client_secret:BGD_CONFIG.GOOGLE_CLIENT_SECRET,refresh_token:googleOAuth.refresh_token,grant_type:'refresh_token'});
+  if(!googleOAuth.refresh_token || !BGD_CONFIG.GOOGLE_OAUTH_API_URL) return null;
   try{
-    const response=await fetch(GOOGLE_TOKEN_URL,{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:body.toString()});
-    const data=await response.json();
-    if(!response.ok || !data.access_token) return null;
+    const data=await oauthBackend({action:'refresh',refreshToken:googleOAuth.refresh_token});
+    if(!data.access_token) return null;
     const updated={...googleOAuth,access_token:data.access_token,expires_at:Date.now()+Number(data.expires_in || 3600)*1000,scope:data.scope || googleOAuth.scope,token_type:data.token_type || googleOAuth.token_type};
     await browser.storage.local.set({googleOAuth:updated});
     return updated.access_token;
   }catch(error){
-    if(googleOAuth.access_token) return googleOAuth.access_token;
+    console.error('BGD Agenda: falha ao renovar token Google.',error);
+    if(googleOAuth.access_token && Number(googleOAuth.expires_at || 0)>Date.now()) return googleOAuth.access_token;
     return null;
   }
 }
