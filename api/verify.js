@@ -1,30 +1,37 @@
 const { createClient } = require('@supabase/supabase-js');
 const jwt = require('jsonwebtoken');
 
-// Adicionei um fallback para não dar erro se a chave estiver vazia
-const supabaseUrl = process.env.SUPABASE_URL || '';
-const supabaseKey = process.env.SUPABASE_KEY || '';
-const supabase = createClient(supabaseUrl, supabaseKey);
+// Fail closed: credenciais e segredo de assinatura devem existir apenas no ambiente de deploy.
+const supabaseUrl = process.env.SUPABASE_URL;
+const supabaseKey = process.env.SUPABASE_KEY;
+const signingSecret = process.env.BRASILGUARD_SIGNING_SECRET;
 
 export default async function handler(req, res) {
-  const { caller, destination } = req.body;
+  if (!supabaseUrl || !supabaseKey || !signingSecret) {
+    return res.status(503).json({ error: 'service_not_configured' });
+  }
 
-  // 1. GERA O TOKEN PRIMEIRO (Para o site não travar)
+  const { caller, destination } = req.body || {};
+  if (!caller || !destination) {
+    return res.status(400).json({ error: 'caller_and_destination_required' });
+  }
+
+  const supabase = createClient(supabaseUrl, supabaseKey);
   const token = jwt.sign(
     { attest: 'A', orig: { tn: caller }, iat: Math.floor(Date.now() / 1000) },
-    'BGUARD_2026',
+    signingSecret,
     { header: { typ: 'passport', ppt: 'shaken', alg: 'HS256' } }
   );
 
-  try {
-    // 2. TENTA SALVAR NO BANCO (Se falhar, o token ainda sai)
-    await supabase.from('registros').insert([{ 
-        origem: caller || '552199999999', 
-        destino: destination || '552188888888', 
-        token_gerado: token 
-    }]);
-  } catch (e) {
-    console.error("Erro no banco:", e.message);
+  const { error } = await supabase.from('registros').insert([{
+    origem: caller,
+    destino: destination,
+    token_gerado: token
+  }]);
+
+  if (error) {
+    console.error('Erro no banco:', error.message);
+    return res.status(503).json({ error: 'persistence_failed' });
   }
 
   return res.status(200).json({ identity_token: token });
