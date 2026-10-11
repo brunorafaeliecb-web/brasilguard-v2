@@ -1,0 +1,25 @@
+name: BRafaelS clean source release qualification
+on: [push, pull_request]
+permissions:
+  contents: read
+jobs:
+  qualify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Create source-only review tarball
+        run: |
+          mkdir -p /tmp/brs
+          tar --exclude=.git --exclude=node_modules --exclude='*.env' -czf /tmp/brs/brasilguard-v2-source.tgz .
+          test -s /tmp/brs/brasilguard-v2-source.tgz
+          if tar tzf /tmp/brs/brasilguard-v2-source.tgz | grep -E '(^|/)node_modules/|(^|/)\.env($|\.)'; then echo 'SENSITIVE_OR_VENDOR_FILES_INCLUDED'; exit 1; fi
+          echo SOURCE_ARCHIVE_PASS
+      - name: Audit source-only files
+        run: |
+          python3 - <<'PY'
+          import pathlib
+          required=['api/verify.js','package.json','package-lock.json','public/index.html']
+          for p in required:
+            assert pathlib.Path(p).is_file(),p
+          print('REQUIRED_SOURCE_FILES_PASS',len(required))
+          PY
