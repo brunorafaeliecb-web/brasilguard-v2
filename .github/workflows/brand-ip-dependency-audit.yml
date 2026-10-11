@@ -1,0 +1,27 @@
+name: BRafaelS dependency-license audit
+on: [push, pull_request]
+permissions:
+  contents: read
+jobs:
+  licenses:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Analyze npm lockfile declared licenses
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import json, collections
+          from pathlib import Path
+          lock=json.loads(Path('package-lock.json').read_text())
+          packages={name:entry for name,entry in lock.get('packages',{}).items() if name}
+          counts=collections.Counter((p.get('license') or 'UNDECLARED') for p in packages.values())
+          print('PACKAGES:',len(packages))
+          for license_name,count in sorted(counts.items()):
+              print('LICENSE_COUNT:',license_name,count)
+          for name,p in packages.items():
+              license_name=p.get('license') or 'UNDECLARED'
+              if any(marker in license_name.upper() for marker in ('GPL','AGPL','SSPL','UNLICENSED','UNKNOWN')) or license_name=='UNDECLARED':
+                  print('REVIEW_REQUIRED:',name,license_name)
+          if not packages: raise SystemExit('Empty lockfile')
+          PY
